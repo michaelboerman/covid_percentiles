@@ -9,7 +9,7 @@ ui <- fluidPage(
     
     h5("If life is a competition and not getting covid before the masses is something upon which you wnat to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't ahead (er, behind) the curve as you hoped."),
     h5("This page does not store any date you input. Your information stays private."),
-    h5("The code lives here: "),
+    h5("The code lives here: https://github.com/michaelboerman/covid_percentiles"),
     
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
