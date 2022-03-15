@@ -16,7 +16,13 @@ ui <- fluidPage(
     # build the UI
     sidebarLayout(
         sidebarPanel(
-            dateInput("user_covid_date", "When did you get Covid?", value = "2022-01-01")
+            dateInput(
+                inputId = "user_covid_date", 
+                label = "When did you get Covid?", 
+                value = "2022-01-01",
+                min = all_covid_data %>% pull(date) %>% head(1),
+                max = all_covid_data %>% pull(date) %>% tail(1)
+            )
         ),
         
         # Show a plot of the generated distribution
@@ -107,7 +113,8 @@ server <- function(input, output) {
             # adjustments to theme and stuffs
             theme_minimal() +
             theme(
-                panel.grid = element_blank()
+                panel.grid = element_blank(),
+                plot.title = element_text(size = 18, face = "bold")
             ) +
             labs(
                 title    = paste0("Of all the people in the US who caught COVID so far, \nyou caught it after ", percentile()*100, "% of them."),
