@@ -1,6 +1,7 @@
 library(shiny)
 library(COVID19)
 library(tidyverse)
+library(scales)
 
 ui <- fluidPage(
 
@@ -19,7 +20,10 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-            textOutput("percent")
+            tabsetPanel(
+                tabPanel("Summary", textOutput("percent")),
+                tabPanel("Plot", plotOutput("cdf_plot"))
+            )
         )
     )
 )
@@ -27,21 +31,46 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    all_covid_data <- COVID19::covid19("USA")
-    total_confirmed_count <- all_covid_data %>% pull(confirmed) %>% tail(1) 
+    all_covid_data        <- COVID19::covid19("USA")
+    total_confirmed_count <- all_covid_data %>% 
+        pull(confirmed) %>% 
+        tail(1) 
+    data_in_percentiles   <- all_covid_data %>% 
+        select(date, confirmed) %>% 
+        mutate(pct_of_total = confirmed / total_confirmed_count)
     
     percentile <- reactive(
-        all_covid_data %>% 
-            select(date, confirmed) %>% 
-            mutate(pct_of_total = confirmed / total_confirmed_count) %>% 
+        data_in_percentiles %>% 
             filter(date == input$user_covid_date) %>% 
             pull(pct_of_total)
     )
     
     output$percent <- renderText(
-        paste0("You got covid after ", round(percentile(), 4)*100, "% of people got it in the United States to date.")
+        paste0("Of all the people in the US who caught COVID so far, you caught it after ", round(percentile(), 4)*100, "% of them.")
     )
     
+    output$cdf_plot <- renderPlot(
+        data_in_percentiles %>% 
+            ggplot(aes(x = date, y = pct_of_total)) +
+            geom_line() + 
+            scale_y_continuous(
+                labels = scales::percent_format(scale = 100),
+                expand = expansion(0, 0),
+                name = "Percent of Confirmed Cases"
+            ) +
+            scale_x_date(
+                date_breaks = "3 months", 
+                date_labels = "%b %Y",
+                expand = expansion(0, 0),
+                name = NULL
+            ) +
+            geom_vline(xintercept = input$user_covid_date, color = "grey", type = "dashed") +
+            geom_hline(yintercept = percentile(), color = "grey", type = "dashed") +
+            theme_minimal() +
+            theme(
+                panel.grid = element_blank()
+            )
+    )
 }
 
 # Run the application 
