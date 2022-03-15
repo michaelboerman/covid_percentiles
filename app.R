@@ -3,15 +3,20 @@ library(COVID19)
 library(tidyverse)
 library(scales)
 
+# pull in all the data from this R package that reads from covid19hub source
+# set last day to be yesterday due to incomplete info about current day.
+# Need to define outside of 'server' because the UI will be using it on the front end, before server is called.
+all_covid_data <<- COVID19::covid19("USA", end = Sys.Date() - 1, verbose = FALSE)
+
+# define the front-end:
 ui <- fluidPage(
 
     # Application title
-    titlePanel("COVID: How did you fare?"),
+    titlePanel("COVID: How Did You Fare?"),
     
     # add some blah blah text
-    h5("If life is a competition and not getting covid before the masses is something upon which you wnat to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't ahead (er, behind) the curve as you hoped."),
+    h5("If life is a competition and not getting covid before the masses is something upon which you want to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't as ahead (er, behind) the curve as you hoped."),
     h5("This page does not store any date you input. Your information stays private."),
-    h5("The code lives here: https://github.com/michaelboerman/covid_percentiles"),
     
     # build the UI
     sidebarLayout(
@@ -27,18 +32,16 @@ ui <- fluidPage(
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("cdf_plot")
+            plotOutput("cdf_plot"),
+            h6(HTML("<p>Find the source code at <a href='https://github.com/michaelboerman/covid_percentiles'>github.com/michaelboerman/covid_percentiles</a><p>")),
+            h6(HTML("<p>See more of my work at <a href='https://www.michaelboerman.com'>michaelboerman.com</a> and get in touch with me via michaelboerman@hey.com :)<p>"))
         )
     )
 )
 
-# Define server logic required to draw a histogram
+# Define the back-end:ß
 server <- function(input, output) {
-    
-    # pull in all the data from this R package that reads from covid19hub source
-    # set last day ato be yesterday due to incomplete info about current day.
-    all_covid_data        <- COVID19::covid19("USA", end = Sys.Date()-1, verbose = FALSE)
-    
+
     # grab the final number for use in calculating the percent completed later
     total_confirmed_count <- all_covid_data %>% 
         pull(confirmed) %>% 
@@ -117,8 +120,8 @@ server <- function(input, output) {
                 plot.title = element_text(size = 18, face = "bold")
             ) +
             labs(
-                title    = paste0("Of all the people in the US who caught COVID so far, \nyou caught it after ", percentile()*100, "% of them."),
-                subtitle = "Analysis and Site made by Michael Boerman (www.michaelboerman.com).\nData from Covid19DataHub.",
+                title    = paste0("Of all the people in the U.S. who caught COVID so far, \nyou caught it after ", percentile()*100, "% of them."),
+                caption  = "Data from Covid19DataHub",
                 alt      = "A graph showing the cumulative COVID case count over time, with lines pointing to the intersection of date entered and the corresponding percentage of cases to date."
             )
     )
