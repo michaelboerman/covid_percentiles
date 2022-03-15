@@ -8,22 +8,20 @@ ui <- fluidPage(
     # Application title
     titlePanel("COVID: How did you fare?"),
     
+    # add some blah blah text
     h5("If life is a competition and not getting covid before the masses is something upon which you wnat to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't ahead (er, behind) the curve as you hoped."),
     h5("This page does not store any date you input. Your information stays private."),
     h5("The code lives here: https://github.com/michaelboerman/covid_percentiles"),
     
-    # Sidebar with a slider input for number of bins 
+    # build the UI
     sidebarLayout(
         sidebarPanel(
             dateInput("user_covid_date", "When did you get Covid?", value = "2022-01-01")
         ),
-
+        
         # Show a plot of the generated distribution
         mainPanel(
-            tabsetPanel(
-                tabPanel("Summary", textOutput("percent")),
-                tabPanel("Plot", plotOutput("cdf_plot"))
-            )
+            plotOutput("cdf_plot")
         )
     )
 )
@@ -45,18 +43,16 @@ server <- function(input, output) {
             pull(pct_of_total)
     )
     
-    output$percent <- renderText(
-        paste0("Of all the people in the US who caught COVID so far, you caught it after ", round(percentile(), 4)*100, "% of them.")
-    )
-    
     output$cdf_plot <- renderPlot(
         data_in_percentiles %>% 
             ggplot(aes(x = date, y = pct_of_total)) +
             geom_line() + 
             scale_y_continuous(
-                labels = scales::percent_format(scale = 100),
-                expand = expansion(0, 0),
-                name = "Percent of Confirmed Cases"
+                name = NULL,
+                labels = scales::percent_format(scale = 100, accuracy = 1),
+                position = "right",
+                n.breaks = 10,
+                expand = expansion(0, 0)
             ) +
             scale_x_date(
                 date_breaks = "3 months", 
@@ -64,11 +60,23 @@ server <- function(input, output) {
                 expand = expansion(0, 0),
                 name = NULL
             ) +
-            geom_vline(xintercept = input$user_covid_date, color = "grey", type = "dashed") +
-            geom_hline(yintercept = percentile(), color = "grey", type = "dashed") +
+            geom_vline(
+                xintercept = input$user_covid_date, 
+                color = "grey", 
+                linetype = "dashed"
+            ) +
+            geom_hline(
+                yintercept = percentile(), 
+                color = "grey", 
+                linetype = "dashed"
+            ) +
             theme_minimal() +
             theme(
                 panel.grid = element_blank()
+            ) +
+            ggtitle(
+                label = paste0("Of all the people in the US who caught COVID so far, you caught it after ", round(percentile(), 4)*100, "% of them."),
+                subtitle = "Data from Covid19DataHub. Analysis and Site made by Michael Boerman (www.michaelboerman.com)"
             )
     )
 }
