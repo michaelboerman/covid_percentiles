@@ -12,7 +12,7 @@ all_covid_data <<- COVID19::covid19("USA", end = Sys.Date() - 1, verbose = FALSE
 ui <- fluidPage(
 
     # Application title
-    titlePanel("COVID: How Did You Fare?"),
+    titlePanel("COVID: How Long Did You Last?"),
     
     # add some blah blah text
     h5("If life is a competition and not getting covid before the masses is something upon which you want to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't as ahead (er, behind) the curve as you hoped."),
@@ -68,7 +68,7 @@ server <- function(input, output) {
             
             # build basic plot layers
             ggplot(aes(x = date, y = pct_of_total)) +
-            geom_line() + 
+            geom_line(size = 1.25) + 
             
             # modify axes
             scale_y_continuous(
