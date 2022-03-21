@@ -1,12 +1,38 @@
 library(shiny)
 library(COVID19)
+library(ISOcodes)
 library(tidyverse)
 library(scales)
 
-# pull in all the data from this R package that reads from covid19hub source
-# set last day to be yesterday due to incomplete info about current day.
-# Need to define outside of 'server' because the UI will be using it on the front end, before server is called.
-all_covid_data <<- COVID19::covid19("USA", end = Sys.Date() - 1, verbose = FALSE)
+# Before getting underway, we first need to create a list of countries with data.
+# This list will be available to the user on the front-end, before any back-end dynamic work is done.
+available_country_list <- 
+    
+    # pull ALL covid data
+    COVID19::covid19(verbose = FALSE) %>% 
+    
+    # remove any rows that don't have data about confirmed cases
+    drop_na(confirmed) %>% 
+    
+    # grab the unique countries that exist in the dataset
+    select(iso_alpha_3) %>% 
+    unique() %>% 
+    
+    # join in a dataset that matches ISO codes w/ country names
+    left_join(ISOcodes::ISO_3166_1, by = c("iso_alpha_3" = "Alpha_3")) %>% 
+    
+    # grab just the iso_code and corresponding country name.
+    # If there exists a "common name", use this instead of the more formal name.
+    # (ie: People's Republic of China -> China)
+    transmute(
+        iso_code = iso_alpha_3, 
+        country_name = case_when(
+           !is.na(Common_name) ~ Common_name,
+           TRUE ~ Name
+        )
+    ) %>% 
+    arrange(country_name) %>% 
+    drop_na()
 
 # define the front-end:
 ui <- fluidPage(
@@ -23,15 +49,21 @@ ui <- fluidPage(
         sidebarPanel(
             dateInput(
                 inputId = "user_covid_date", 
-                label = "When did you get Covid?", 
-                value = "2022-01-01",
-                min = all_covid_data %>% pull(date) %>% head(1),
-                max = all_covid_data %>% pull(date) %>% tail(1)
+                label   = "When did you get Covid?", 
+                value   = "2022-01-01",
+                min     = "2020-01-01",
+                max     = Sys.Date()
+            ),
+            selectInput(
+                inputId  = "which_country",
+                label    = "In which country do you reside?",
+                selected = "United States",
+                choices  = available_country_list$country_name
             ),
             checkboxInput(
                 inputId = "no_covid",
-                label = "I didn't get COVID",
-                value = FALSE
+                label   = "I didn't get COVID",
+                value   = FALSE
             )
         ),
         
@@ -45,7 +77,7 @@ ui <- fluidPage(
                 condition = "!input.no_covid",
                 plotOutput("cdf_plot")
             ),
-            h6(HTML("<p>Find the source code at <a href='https://github.com/michaelboerman/covid_percentiles'>github.com/michaelboerman/covid_percentiles</a><p>")),
+            h6(HTML("<p>Find the source code at <a href='https://github.com/michaelboerman/covid_percentiles/blob/main/app.R'>github.com/michaelboerman/covid_percentiles</a><p>")),
             h6(HTML("<p>See more of my work at <a href='https://www.michaelboerman.com'>michaelboerman.com</a> and get in touch with me via michaelboerman@hey.com :)<p>"))
         )
     )
@@ -54,39 +86,61 @@ ui <- fluidPage(
 # Define the back-end:
 server <- function(input, output) {
     
-    # grab the final number for use in calculating the percent completed later
-    total_confirmed_count <- all_covid_data %>% 
-        pull(confirmed) %>% 
-        tail(1) 
+    this_iso_code <- reactive({
+        available_country_list %>% 
+            filter(country_name == input$which_country) %>% 
+            pull(iso_code)
+    })
     
-    total_population <- all_covid_data %>% 
-        pull(population) %>% 
-        tail(1) 
+    all_covid_data <- reactive({
+        COVID19::covid19(this_iso_code(), end = Sys.Date() - 1, verbose = FALSE)
+    })
+    
+    # grab the final number for use in calculating the percent completed later
+    total_confirmed_count <- reactive({
+        all_covid_data() %>% 
+            pull(confirmed) %>% 
+            tail(1)
+    })
+    
+    total_population <- reactive({
+        all_covid_data() %>% 
+            pull(population) %>% 
+            tail(1)
+    })
     
     # If they don't have covid, print text output instead.
-    percent_had_covid <- (total_confirmed_count / total_population * 100) %>% round(2)
+    percent_had_covid <- reactive({
+        (total_confirmed_count() / total_population() * 100) %>% round(2)
+    })
+    
     output$no_covid_text <- renderText(paste0(
-        "Congratulations! You are in the ", 100 - percent_had_covid, "% of Americans who did NOT catch COVID!"
+        "Congratulations! You are in the ", 100 - percent_had_covid(), "% of citizens who did NOT catch COVID in ", input$which_country, "!"
     ))
     
     # calculate a dataframe that adds a row for the % completed
-    data_in_percentiles   <- all_covid_data %>% 
-        select(date, confirmed) %>% 
-        mutate(pct_of_total = confirmed / total_confirmed_count)
+    data_in_percentiles   <- reactive({
+        all_covid_data() %>% 
+            select(date, confirmed) %>% 
+            mutate(pct_of_total = confirmed / total_confirmed_count())
+    })
     
     # the dynamic output after filtering on user input.
-    percentile <- reactive(
-        data_in_percentiles %>% 
+    percentile <- reactive({
+        data_in_percentiles() %>% 
             filter(date == input$user_covid_date) %>% 
             pull(pct_of_total) %>% 
             round(4)
-    )
+    })
     
     # create a dynamic plot. 
     output$cdf_plot <- renderPlot(
         
         # input data, all transforms already performed
-        data_in_percentiles %>% 
+        data_in_percentiles() %>% 
+            
+            # remove na in data (ggplot will do this automatically, but making it explicit will remove the warnings)
+            drop_na() %>% 
             
             # build basic plot layers
             ggplot(aes(x = date, y = pct_of_total)) +
@@ -129,7 +183,7 @@ server <- function(input, output) {
             ) +
             annotate(
                 geom  = "label",
-                x     = data_in_percentiles$date[34],
+                x     = as.Date("2020-03-01"),
                 y     = percentile(),
                 label = paste0(percentile()*100, "%"),
                 color = "grey", fill = "white"
@@ -142,8 +196,9 @@ server <- function(input, output) {
                 plot.title = element_text(size = 18, face = "bold")
             ) +
             labs(
-                title    = paste0("Of all the people in the U.S. who caught COVID so far, \nyou caught it after ", percentile()*100, "% of them."),
-                caption  = "Data from Covid19DataHub",
+                title    = paste0("Of those in ", input$which_country, " who have caught COVID so far*, \nyou caught it after ", percentile()*100, "% of them!"),
+                subtitle = paste0('*"Cought COVID so far" = tested positive and reported to government.'),
+                caption  = 'Data from Covid19DataHub.',
                 alt      = "A graph showing the cumulative COVID case count over time, with lines pointing to the intersection of date entered and the corresponding percentage of cases to date."
             )
     )
