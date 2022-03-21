@@ -27,25 +27,47 @@ ui <- fluidPage(
                 value = "2022-01-01",
                 min = all_covid_data %>% pull(date) %>% head(1),
                 max = all_covid_data %>% pull(date) %>% tail(1)
+            ),
+            checkboxInput(
+                inputId = "no_covid",
+                label = "I didn't get COVID",
+                value = FALSE
             )
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("cdf_plot"),
+            conditionalPanel(
+                condition = "input.no_covid",
+                h3(textOutput('no_covid_text'))
+            ),
+            conditionalPanel(
+                condition = "!input.no_covid",
+                plotOutput("cdf_plot")
+            ),
             h6(HTML("<p>Find the source code at <a href='https://github.com/michaelboerman/covid_percentiles'>github.com/michaelboerman/covid_percentiles</a><p>")),
             h6(HTML("<p>See more of my work at <a href='https://www.michaelboerman.com'>michaelboerman.com</a> and get in touch with me via michaelboerman@hey.com :)<p>"))
         )
     )
 )
 
-# Define the back-end:ß
+# Define the back-end:
 server <- function(input, output) {
-
+    
     # grab the final number for use in calculating the percent completed later
     total_confirmed_count <- all_covid_data %>% 
         pull(confirmed) %>% 
         tail(1) 
+    
+    total_population <- all_covid_data %>% 
+        pull(population) %>% 
+        tail(1) 
+    
+    # If they don't have covid, print text output instead.
+    percent_had_covid <- total_confirmed_count / total_population * 100 %>% round(2)
+    output$no_covid_text <- renderText(paste0(
+        "Congratulations! You are in the ", 100 - percent_had_covid, "% of Americans who did NOT catch COVID!"
+    ))
     
     # calculate a dataframe that adds a row for the % completed
     data_in_percentiles   <- all_covid_data %>% 
