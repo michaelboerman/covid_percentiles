@@ -64,7 +64,7 @@ server <- function(input, output) {
         tail(1) 
     
     # If they don't have covid, print text output instead.
-    percent_had_covid <- total_confirmed_count / total_population * 100 %>% round(2)
+    percent_had_covid <- (total_confirmed_count / total_population * 100) %>% round(2)
     output$no_covid_text <- renderText(paste0(
         "Congratulations! You are in the ", 100 - percent_had_covid, "% of Americans who did NOT catch COVID!"
     ))
