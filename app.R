@@ -52,7 +52,7 @@ ui <- fluidPage(
                 label   = "When did you get Covid?", 
                 value   = "2022-01-01",
                 min     = "2020-01-01",
-                max     = Sys.Date()
+                max     = Sys.Date()-1
             ),
             selectInput(
                 inputId  = "which_country",
@@ -157,8 +157,9 @@ server <- function(input, output) {
             scale_x_date(
                 date_breaks = "3 months", 
                 date_labels = "%b %Y",
-                expand      = expansion(0, 0),
-                name        = NULL
+                expand      = expansion(0, c(1, 0)),
+                name        = NULL,
+                limits      = c(as.Date("2020-01-01"), Sys.Date() - 1)
             ) +
             
             # add a vertical cross hair line
@@ -183,7 +184,7 @@ server <- function(input, output) {
             ) +
             annotate(
                 geom  = "label",
-                x     = as.Date("2020-03-01"),
+                x     = as.Date("2020-02-15"),
                 y     = percentile(),
                 label = paste0(percentile()*100, "%"),
                 color = "grey", fill = "white"
