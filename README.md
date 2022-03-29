@@ -3,7 +3,8 @@
  
  https://michaelboerman.shinyapps.io/covid_percentiles/
 
-https://user-images.githubusercontent.com/61358854/158844312-74530cad-b227-419f-9910-18c74ea71adf.mov
+![Screen Recording 2022-03-29 at 1 21 03 PM](https://user-images.githubusercontent.com/61358854/160669605-1615cd3d-c17b-453c-bae6-e7c4bb1c9db5.gif)
+
 
  Questions? Comments? Suggestions? [Submit them here](https://github.com/michaelboerman/covid_percentiles/issues).
  
