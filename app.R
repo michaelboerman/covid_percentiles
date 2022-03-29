@@ -11,12 +11,11 @@ available_country_list <-
     # pull ALL covid data
     COVID19::covid19(verbose = FALSE) %>% 
     
-    # remove any rows that don't have data about confirmed cases
+    # remove any rows that don't have data about confirmed cases.
     drop_na(confirmed) %>% 
     
     # grab the unique countries that exist in the dataset
-    select(iso_alpha_3) %>% 
-    unique() %>% 
+    distinct(iso_alpha_3) %>% 
     
     # join in a dataset that matches ISO codes w/ country names
     left_join(ISOcodes::ISO_3166_1, by = c("iso_alpha_3" = "Alpha_3")) %>% 
@@ -47,6 +46,12 @@ ui <- fluidPage(
     # build the UI
     sidebarLayout(
         sidebarPanel(
+            selectInput(
+                inputId  = "which_country",
+                label    = "In which country do you reside?",
+                selected = "United States",
+                choices  = available_country_list$country_name
+            ),
             dateInput(
                 inputId = "user_covid_date", 
                 label   = "When did you get Covid?", 
@@ -54,15 +59,9 @@ ui <- fluidPage(
                 min     = "2020-01-01",
                 max     = Sys.Date()-1
             ),
-            selectInput(
-                inputId  = "which_country",
-                label    = "In which country do you reside?",
-                selected = "United States",
-                choices  = available_country_list$country_name
-            ),
             checkboxInput(
                 inputId = "no_covid",
-                label   = "I didn't get COVID",
+                label   = "I didn't get Covid",
                 value   = FALSE
             )
         ),
