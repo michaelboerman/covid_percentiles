@@ -98,8 +98,10 @@ server <- function(input, output) {
     # grab the final number for use in calculating the percent completed later
     total_confirmed_count <- reactive({
         all_covid_data() %>% 
-            pull(confirmed) %>% 
-            tail(1)
+            
+            # last-available non-NA value is march 23, 2023
+            filter(date == "2023-03-23") %>%  
+            pull(confirmed)
     })
     
     total_population <- reactive({
@@ -195,6 +197,7 @@ server <- function(input, output) {
                 panel.grid = element_blank(),
                 plot.title = element_text(size = 18, face = "bold")
             ) +
+            
             labs(
                 title    = paste0("Of those in ", input$which_country, " who have caught COVID so far*, \nyou caught it after ", percentile()*100, "% of them!"),
                 subtitle = paste0('*"Cought COVID so far" = tested positive and reported to government.'),
