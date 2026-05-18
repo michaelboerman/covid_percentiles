@@ -1,7 +1,7 @@
 # covid_percentiles
  A Shiny app displaying a percentile of US covid cases as of a certain date.
  
- https://michaelboerman.shinyapps.io/covid_percentiles/
+ https://michaelboerman-covid-percentiles.share.connect.posit.cloud
 
 ![Screen Recording 2022-03-29 at 1 21 03 PM](https://user-images.githubusercontent.com/61358854/160669605-1615cd3d-c17b-453c-bae6-e7c4bb1c9db5.gif)
 
