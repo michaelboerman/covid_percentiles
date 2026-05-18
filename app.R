@@ -1,7 +1,9 @@
 library(shiny)
 library(COVID19)
 library(ISOcodes)
-library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
 library(scales)
 
 # Before getting underway, we first need to create a list of countries with data.
@@ -41,7 +43,7 @@ ui <- fluidPage(
     
     # add some blah blah text
     h5("If life is a competition and not getting covid before the masses is something upon which you want to pride yourself, then this page helps you feel good about how long you may have fended off the virus -- or learn that you weren't as ahead (er, behind) the curve as you hoped."),
-    h5("This page does not store any date you input. Your information stays private."),
+    h5("This page does not store any date you input."),
     
     # build the UI
     sidebarLayout(
@@ -57,7 +59,7 @@ ui <- fluidPage(
                 label   = "When did you get Covid?", 
                 value   = "2022-01-01",
                 min     = "2020-01-01",
-                max     = Sys.Date()-1
+                max     = "2023-03-23"
             ),
             checkboxInput(
                 inputId = "no_covid",
@@ -92,7 +94,7 @@ server <- function(input, output) {
     })
     
     all_covid_data <- reactive({
-        COVID19::covid19(this_iso_code(), end = Sys.Date() - 1, verbose = FALSE)
+        COVID19::covid19(this_iso_code(), end = as.Date("2023-03-23"), verbose = FALSE)
     })
     
     # grab the final number for use in calculating the percent completed later
@@ -160,7 +162,7 @@ server <- function(input, output) {
                 date_labels = "%b %Y",
                 expand      = expansion(0, c(1, 0)),
                 name        = NULL,
-                limits      = c(as.Date("2020-01-01"), Sys.Date() - 1)
+                limits      = c(as.Date("2020-01-01"), as.Date("2023-03-23"))
             ) +
             
             # add a vertical cross hair line
@@ -199,9 +201,9 @@ server <- function(input, output) {
             ) +
             
             labs(
-                title    = paste0("Of those in ", input$which_country, " who have caught COVID so far*, \nyou caught it after ", percentile()*100, "% of them!"),
+                title    = paste0("Of those in ", input$which_country, " who caught COVID*, \nyou caught it after ", percentile()*100, "% of them!"),
                 subtitle = paste0('*"Cought COVID so far" = tested positive and reported to government.'),
-                caption  = 'Data from Covid19DataHub.',
+                caption  = 'Data from Covid19DataHub, which ended tracking on March 23, 2023.',
                 alt      = "A graph showing the cumulative COVID case count over time, with lines pointing to the intersection of date entered and the corresponding percentage of cases to date."
             )
     )
